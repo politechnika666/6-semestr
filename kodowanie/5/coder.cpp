@@ -17,8 +17,10 @@ unsigned char *buffer;
 
 long length;
 unsigned int actPos = 0;
+unsigned int ptrA = 0;
+unsigned int lenA = 0;
 
-void writeFile(string encoded);
+void writeFile(unsigned char *a);
 void ReadFile(char *name);
 short getPrefix(short *dictionary, short *coder, short * k);
 void shiftCoder(short *dictionary, short *coder, short numberOf);
@@ -28,6 +30,7 @@ void initialize(short *dictionary,short *coder);
 int main(int args, char* argv[])
 {
 	ReadFile(argv[1]);
+    unsigned char* a =  (unsigned char*)calloc(1,sizeof(*a));
     short dictionary[256];
     short coder[257];
     for(int i = 0; i<256; ++i) {
@@ -41,8 +44,7 @@ int main(int args, char* argv[])
     short k = 0; // i from task list
     short l = 0; // j from task list
     short i = 0;
-    string encoded = "";
-    stringstream ss;
+
     while(coder[1] != -1) {
         k = 0;
         l = getPrefix(dictionary,coder, &k);
@@ -59,21 +61,21 @@ int main(int args, char* argv[])
         }
         cout << endl << endl;*/
         if(l == 0) {
-            //encoded += "0";
-
-            //encoded += (unsigned char)coder[1];
-            ss << 0;
-            encoded += ss.str();
-            ss.str("");
-            encoded += coder[1];
+            a = (unsigned char*)realloc(a, (ptrA+3)*sizeof(*a));
+            a[ptrA] = 0;
+            ptrA++;
+            a[ptrA] = (unsigned char)coder[1];
+            ptrA++;
+            lenA += 2;
         }
         else {
-            //encoded += (unsigned char)k;
-            //encoded += (unsigned char)l;   
-            ss << k;
-            ss << l;
-            encoded += ss.str();
-            ss.str("");
+            a = (unsigned char*)realloc(a, (ptrA+3)*sizeof(*a));
+            a[ptrA] = (unsigned char)k;
+            ptrA++;
+            a[ptrA] = (unsigned char)l;
+            ptrA++;
+            lenA += 2;
+
         }
         i = 0;
         do {
@@ -83,31 +85,29 @@ int main(int args, char* argv[])
         }while(i<l);
     }
 
-    //cout << "Dlugosc wejscia: " << length*8 << endl;
-    //cout << "Dlugosc po zakodowaniu: " << encoded.size() << endl;
-    //cout << "Srednia dlugosc kodowania: " << averageLen << endl;
-    //cout << "Stopień kompresji: " << compressionDeg << endl; 
-    ss >> encoded;
-    writeFile(encoded);
-    cout << encoded << endl;
+    cout << "Dlugosc wejscia: " << length*8 << endl;
+    writeFile(a);
     cout << "Koniec" << endl;
 
     free(buffer);
+    free(a);
 
     return 0;
 }
 
 
-void writeFile(string encoded) { 
+void writeFile(unsigned char *a) { 
     FILE* pFile;
-    unsigned char* a = new unsigned char[encoded.length()+1];
-    strcpy((char*)a, encoded.c_str());
+    
+    //strcpy((char*)a, encoded.c_str());
+    //for(int i = 0; i<lenA; ++i)
+        //cout << (short)a[i] << " ";
 
     pFile = fopen("/home/afro/Dokumenty/kodowanie/5/encoded", "w+");
     //cout << "ENCODED LEN: " << encoded.length() << endl;
 
-    fwrite(a, encoded.length(), 1, pFile);
-    free(a);
+    fwrite(a, lenA, 1, pFile);
+    //free(a);
 }
 
 // Reading binary files function
@@ -191,7 +191,7 @@ void shiftCoder(short *dictionary,short *coder, short numberOf) {
     for(int i = 1; i<257; ++i) {
         coder[i] = coder[i+1];
     }
-    if(actPos == length) {
+    if(actPos > length) {
         coder[256] = -1;
     }
     else {

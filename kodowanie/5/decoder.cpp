@@ -21,8 +21,8 @@ unsigned int actPos = 0;
 void writeFile(string encoded);
 void ReadFile(char *name);
 short getPrefix(short *dictionary, short *coder, short * k);
-void shiftCoder(short *dictionary, short *coder, short numberOf);
-void shiftDictionary(short *dictionary,short *coder, short numberOf);
+void shiftCoder(short *coder);
+void shiftDictionary(short *dictionary,short *coder);
 void initialize(short *dictionary,short *coder);
  
 int main(int args, char* argv[])
@@ -41,17 +41,48 @@ int main(int args, char* argv[])
     short k = 0; // i from task list
     short l = 0; // j from task list
     short i = 0;
-    string encoded = "";
+    string temp = "";
+    short temp1;
+    string decoded = "";
 
-    for(int i = 0; i<length; ++i)
-        cout << (int)buffer[i] << " ";
+    while(coder[1] != -1) {
+        /*cout << "Dictionary: ";
+        for(i = 1; i<256; ++i) {
+            if(dictionary[i] != -1)
+               cout << dictionary[i] << " ";
+        }
+        cout << endl << "Coder: ";
+        for(i = 1; i<257; ++i) {
+            if(coder[i] != -1)
+                cout << coder[i] << " ";
+        }
+        cout << endl << endl;*/
+        if(coder[1] == 0) {
+            shiftCoder(coder);
+            shiftDictionary(dictionary,coder);
+            decoded += (unsigned char)coder[1];
+            shiftCoder(coder);
+        }
+        else {
+            k = coder[1];
+            shiftCoder(coder);
+            l = coder[1];
+            shiftCoder(coder);
+            //cout << endl << k << "  " << l << endl;
+            //cout << endl << dictionary[k] << "  " << dictionary[l] << endl;
+            for(int i = k; i<l+k; ++i) {
+                temp += (unsigned char)dictionary[i];
+                temp1 = dictionary[i];
+                //cout << "temp1: " << temp1 << endl;
+                shiftDictionary(dictionary,coder);
+                dictionary[1] = temp1;
+            }
+            decoded += temp;
+            temp = "";
+        }
+    }
 
-
-    //cout << "Dlugosc wejscia: " << length*8 << endl;
-    //cout << "Dlugosc po zakodowaniu: " << encoded.size() << endl;
-    //cout << "Srednia dlugosc kodowania: " << averageLen << endl;
-    //cout << "Stopień kompresji: " << compressionDeg << endl; 
-    //writeFile(encoded);
+    writeFile(decoded);
     cout << "Koniec" << endl;
 
     free(buffer);
@@ -65,10 +96,10 @@ void writeFile(string encoded) {
     unsigned char* a = new unsigned char[encoded.length()+1];
     strcpy((char*)a, encoded.c_str());
 
-    pFile = fopen("/home/afro/Dokumenty/kodowanie/5/encoded", "w+");
+    pFile = fopen("/home/afro/Dokumenty/kodowanie/5/decoded", "w+");
     //cout << "ENCODED LEN: " << encoded.length() << endl;
 
-    fwrite(a, encoded.length()/8, 1, pFile);
+    fwrite(a, encoded.length(), 1, pFile);
     free(a);
 }
 
@@ -139,7 +170,7 @@ short getPrefix(short *dictionary, short *coder, short *k) { // k = i from task 
     return tempJ; // tempJ = j from task list
 }
 
-void shiftDictionary(short *dictionary,short *coder, short numberOf) {
+void shiftDictionary(short *dictionary,short *coder) {
     for(int i = 256; i>1; --i) {
         
         dictionary[i] = dictionary[i-1];
@@ -149,7 +180,7 @@ void shiftDictionary(short *dictionary,short *coder, short numberOf) {
     dictionary[1] = coder[1];
 }
 
-void shiftCoder(short *dictionary,short *coder, short numberOf) {
+void shiftCoder(short *coder) {
     for(int i = 1; i<257; ++i) {
         coder[i] = coder[i+1];
     }
