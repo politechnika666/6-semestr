@@ -2,6 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <string>
+#include <map>
+#include <cstdio>
+#include <cstring>
+#include <fstream>
+#include <bitset>
+#include <math.h>
 
 using namespace std;
 
@@ -24,11 +31,15 @@ int main(int args, char* argv[])
 	ReadFile(argv[1]);
     unsigned char* a =  (unsigned char*)calloc(1,sizeof(*a));
     short dictionary[256];
-    short coder[257];
+    int quantity[256];
+    short coder[257];    
+
     for(int i = 0; i<256; ++i) {
         dictionary[i] = -1;
         coder[i] = -1;
+        quantity[i] = 0;
     }
+
     coder[256] = -1;
 
     initialize(dictionary,coder);
@@ -66,12 +77,32 @@ int main(int args, char* argv[])
             }while(i<l);
         }
     }
-    //cout << "Dlugosc wejscia: " << length*8 << endl;
-    writeFile(a);
-    cout << "Koniec" << endl;
+    
+    for(int i = 0; i<length; ++i) {
+        quantity[(int)buffer[i]]++;
+    }
+    
 
     free(buffer);
+
+    double proba = 0.0;
+    double entrophy = 0.0;    
+
+    for(int i = 0; i<256; ++i) {
+        proba = (double)quantity[i]/(double)length;
+        if(proba != 0)
+            entrophy -= (double)proba*(double)log10(proba);
+    }
+
+    entrophy /= (double)log10(2);
+
+    writeFile(a);
     free(a);
+    double compressionDeg = (double)lenA/(length*8);
+    cout << endl << "Długość wejścia: " << length << endl;
+    cout << "Stopień kompresji: " << compressionDeg << endl;
+    cout << "Entropia wejścia: " << entrophy << endl;
+    cout << endl << "Koniec" << endl;
 
     return 0;
 }

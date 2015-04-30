@@ -5,6 +5,7 @@
 #include <string>
 #include <string>
 #include <cstring>
+#include <math.h>
 
 
 using namespace std;
@@ -24,10 +25,12 @@ int main(int args, char* argv[]) {
 	ReadFile(argv[1]);
     short dictionary[256];
     short coder[257];
+    int quantity[256];
     string decoded = "";
     for(int i = 0; i<256; ++i) {
         dictionary[i] = -1;
         coder[i] = -1;
+        quantity[i] = 0;
     }
     coder[256] = -1;
 
@@ -68,7 +71,24 @@ int main(int args, char* argv[]) {
             temp = "";
         }
     }
+
+    for(int i = 0; i<length; ++i) {
+        quantity[(int)buffer[i]]++;
+    }
+    double entrophy = 0, proba = 0;
+    for(int i = 0; i<256; ++i) {
+        proba = (double)quantity[i]/(double)length;
+        if(proba != 0)
+            entrophy -= (double)proba*(double)log10(proba);
+    }
+
+    entrophy /= (double)log10(2);
+
+
+
     writeFile(decoded);
+    cout << "Długość wyjścia: " << length << endl;
+    cout << "Entropia wyjścia: " << entrophy << endl;
     cout << "Koniec" << endl;
 
     free(buffer);
