@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Wisielec</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <string-array name="words">
+        <item>komputer</item>
+        <item>zgadywanka</item>
+        <item>krem</item>
+        <item>człowiek</item>
+        <item>telefon</item>
+        <item>android</item>
+        <item>cyganie</item>
+    </string-array>
+</resources>
