@@ -8,7 +8,7 @@ import "container/list"
 
 // ilość wątków
 const employersNumber int = 5
-const customersNumber int = 1
+const customersNumber int = 3
 const addMachineNumber int = 3
 const multMachineNumber int = 3
 
@@ -26,13 +26,23 @@ const MachineMin int = 20
 const BossMod int = 1
 const EmployerMod int = 1
 const CustomerMod int = 10
-const MachineMod int = 5
+const MachineMod int = 1
 
 // bufor kanałów komunikacji
 const bufsiz int = 1
 
-// a,b - argumenty
+// pstwo zniaszczenia maszyn
+const crushProb = 10
+
+// czas potrzebny do naprawy maszyny
+const repTime = 2
+
+// delay serwisanta
+const serviceDelay = 1
+
+// number1, number2 liczby
 // op - operator
+// result wynik
 type Task struct {
     number1 int
     result int
@@ -41,6 +51,8 @@ type Task struct {
 }
 
 var interactive bool
+var crushedAddMach [addMachineNumber+1]bool
+var crushedMultMach [multMachineNumber+1]bool
 
 func main() {
     // ustalanie trybu pracy
@@ -54,10 +66,9 @@ func main() {
     list_out := make(chan Task, bufsiz)
     storage_in := make(chan int, bufsiz)
     storage_out := make(chan int, bufsiz)
-    //addCh := make(chan Task)
-    multCh := make(chan Task)
-    //var addCh [addMachineNumber+1]chan Task
-    //var multCh [multMachineNumber+1]chan Task
+    freeAddMach := make(chan int, addMachineNumber)
+    freeMultMach := make(chan int, multMachineNumber)
+    multCh := [multMachineNumber+1]chan Task{}
     addCh := [addMachineNumber+1]chan Task{}
 
     // kanały do obsługi menu
@@ -85,23 +96,26 @@ func main() {
     go lists(list_in, list_out, lch)
     go storage(storage_in, storage_out, sch)
     go boss(list_in, 1, bch)
-
     for i := 1; i <= addMachineNumber; i++ {
+        crushedAddMach[i] = false
+        freeAddMach <- i
         addCh[i] = make(chan Task)
-        go addMachine(i,addCh[i], amch)
+        go addMachine(i,addCh[i], amch,freeAddMach)
     }
     for i := 1; i <= multMachineNumber; i++ {
-        go multMachine(i,multCh)
+        crushedMultMach[i] = false
+        freeMultMach <- i
+        multCh[i] = make(chan Task)
+        go multMachine(i,multCh[i],amch,freeMultMach)
     }
     
     for i := 1; i <= employersNumber; i++ {
-        go employer(list_out, storage_in, i, pch, &addCh, multCh)
+        go employer(list_out, storage_in, i, pch, &addCh, &multCh,freeAddMach,freeMultMach)
     }
     for i := 1; i <= customersNumber; i++ {
         go customer(storage_out, i, cch)
     }
-    
-    
+    go service(freeAddMach, freeMultMach)
 
     // błokada main()
     if interactive {
@@ -119,7 +133,16 @@ func main() {
 func menu(lch chan<- bool, sch chan<- bool, exit chan<- bool, bch chan<- bool, pch chan<- bool, cch chan<- bool, amch chan<- bool) {
     var end bool = false
     var input string
-    fmt.Println("m  - print menu")
+    //fmt.Println("m  - print menu")
+    fmt.Println("m - print this menu")
+                fmt.Println("l - print list")
+                fmt.Println("s - print storage")
+                fmt.Println("b - print boss")
+                fmt.Println("p - print producer")
+                fmt.Println("c - print customer")
+                fmt.Println("ma - print machines")
+                fmt.Println("a - print all")
+                fmt.Println("e - exit")
     for !end {
         fmt.Scanf("%s", &input)
         switch input {
@@ -229,7 +252,7 @@ func lists(lin <-chan Task, lout chan<- Task, lch <-chan bool) {
         select {
         case <- lch:
             for e:= tasks.Front(); e != nil; e = e.Next() {
-                fmt.Println(e.Value)
+                //fmt.Println(e.Value)
             }
         default:
         }
@@ -278,7 +301,9 @@ func boss(list chan<- Task, id int, bch <- chan bool) {
         time.Sleep(time.Millisecond * interval)
 
         number1 = rand.Intn(10)
+        rand.Seed(time.Now().Unix()*int64(number1))
         number1 = rand.Intn(10)
+        number2 = rand.Intn(10)
         tmp = rand.Intn(3) 
 
         switch tmp {
@@ -290,27 +315,28 @@ func boss(list chan<- Task, id int, bch <- chan bool) {
             op = "*"
         }
 
-        t = Task{number1:number1, number2:number2, op:op}
+        t = Task{number1:number1, number2:number2, op:op, result:101}
         if !interactive {
             fmt.Println("Boss", id, ": adding", number1, number2, op)
         }
-        select {
-            case <- bch:
-                fmt.Println("Boss", id, ": adding", number1, number2, op)   
+        /*select {
+            //case <- bch:
+                //fmt.Println("Boss", id, ": adding", number1, number2, op)   
             default:
-        }
+        }*/
         list <- t
     }
 }
 
 // pracownik otrzymuje kanałem zadanie z listy
 // wykonuje je i wynik przesyła kanałem do magazynu
-func employer(list <-chan Task, storage chan<- int, id int, pch <- chan bool, addCh *[addMachineNumber+1]chan Task, multCh chan Task) {
-    //var a, b, r int
+func employer(list <-chan Task, storage chan<- int, id int, pch <- chan bool, 
+    addCh *[addMachineNumber+1]chan Task, multCh *[multMachineNumber+1]chan Task,
+    freeAddMach chan int, freeMultMach chan int) {
     var r int
-    var t Task
+    var t, temp Task
     var interval time.Duration
-    var ok bool
+
 
     if !interactive {
         fmt.Println("Employer", id, ": running.")
@@ -320,40 +346,64 @@ func employer(list <-chan Task, storage chan<- int, id int, pch <- chan bool, ad
         time.Sleep(time.Millisecond * interval)
 
         t = <- list
-        //a = t.number1
-        //b = t.number2
+        r = t.result
         if !interactive {
-            fmt.Println("Employer", id, ": got", t.number1, t.number2, t.op)
+            fmt.Println("Employer", id, ": got", t.number1, t.number2, t.op, t.result)
         }
 
         switch t.op {
             case "+":
-                //r = a + b   // odpalamy maszyne dodającą
-                for i:=1; i<= addMachineNumber; i++ {
-                    _, ok = <-addCh[i]
-                    fmt.Println("o kurwa")
-                    if !ok {
-                        fmt.Println("SMIGA JAK POJEBANE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                for true {
+                    if r == 101 {
+                            numOfMach := <-freeAddMach
+                            //fmt.Println("MACHINE NUMBER TO",numOfMach,"EMPLOYER NUMBER TO",id,"OPERATION",t.op)
+                            if !crushedAddMach[numOfMach] {
+                                addCh[numOfMach] <-t
+                                temp = <- addCh[numOfMach]
+                                r = temp.result
+                            }
+                    } else {
                         break
                     }
                 }
             case "-":
-                //r = a - b   // odpalamy maszyne dodającą
-      //          addCh <- t
-        //        t = <- addCh
-          //      r = t.result
-            //case "*":
-              //  r = a * b   // odpalamy maszyne mnożącą
+                for true {
+                    if r == 101 {
+                            numOfMach := <-freeAddMach
+                            //fmt.Println("MACHINE NUMBER TO",numOfMach,"EMPLOYER NUMBER TO",id,"OPERATION",t.op)
+                            if !crushedAddMach[numOfMach] {
+                                addCh[numOfMach] <-t
+                                temp = <- addCh[numOfMach]
+                                r = temp.result
+                            }
+                    } else {
+                        break
+                    }
+                }
+            case "*":
+                for true {
+                    if r == 101 {
+                            numOfMach := <-freeMultMach
+                            //fmt.Println("MACHINE NUMBER TO",numOfMach,"EMPLOYER NUMBER TO",id,"OPERATION",t.op)
+                            if !crushedMultMach[numOfMach] {
+                                multCh[numOfMach] <-t
+                                temp = <- multCh[numOfMach]
+                                r = temp.result
+                            }
+                    } else {
+                        break
+                    }
+                }
         }
 
         if !interactive {
             fmt.Println("Employer", id, ": storing", r)
         }
-        select {
+        /*select {
             case <- pch:
                 fmt.Println("Employer", id, ": got", t.number1, t.number2, t.op, "Result: ", r)
-            default:
-        }
+            //default:
+        }*/
 
         storage <- r
     }
@@ -374,16 +424,16 @@ func customer(storage <-chan int, id int, cch<- chan bool) {
         if !interactive {
             fmt.Println("Customer", id, ": bought", p)
         }
-        select {
+        /*select {
             case <- cch:
                 fmt.Println("Customer", id, ": bought", p)
             default:
-        }
+        }*/
     }
 }
 
 // maszyna wykonująca dodawanie
-func addMachine(id int, addCh chan Task, amch chan bool) {
+func addMachine(id int, addCh chan Task, amch chan bool, freeCh chan<- int) {
     var interval time.Duration
     var probability int
     for true {
@@ -394,23 +444,94 @@ func addMachine(id int, addCh chan Task, amch chan bool) {
 
         switch task.op {
             case "+":
-                task.result = task.number1 + task.number2
+                rand.Seed(time.Now().Unix())
+                probability = rand.Intn(100)
+                if probability < crushProb {
+                    fmt.Println("Adding machine", id, "has crashed!")
+                    crushedAddMach[id] = true
+                } else {
+                    task.result = task.number1 + task.number2
+                }
             case "-":
-                task.result = task.number1 - task.number2
+                rand.Seed(time.Now().Unix())
+                probability = rand.Intn(100)
+                if probability < crushProb {
+                    fmt.Println("Adding machine", id, "has crashed!")
+                    crushedAddMach[id] = true
+                } else {
+                    task.result = task.number1 - task.number2
+                }
         }
         if !interactive {
-            fmt.Println("Machine", id, ": get", task.number1, task.number2, task.op, "Result:", task.result)
+            fmt.Println("Adding machine", id, ": get", task.number1, task.number2, task.op, "Result:", task.result)
         }
-        select {
+        /*select {
             case <- amch:
-                fmt.Println("Machine", id, ": get", task.number1, task.number2, task.op, "Result:", task.result)
+                fmt.Println("Adding machine", id, ": get", task.number1, task.number2, task.op, "Result:", task.result)
             default:
-        }
+        }*/
         addCh <- task
+        freeCh <- id
     }
 }
 
 // maszyna wykonująca mnożenie
-func multMachine(id int, multCh chan Task) {
+func multMachine(id int, multCh chan Task, amch chan bool, freeCh chan<- int) {
+    var interval time.Duration
+    var probability int
+    for true {
+        interval = time.Duration(MachineMin + rand.Intn(MachineMod))
+        time.Sleep(time.Millisecond * interval)
 
+        task := <- multCh
+
+        switch task.op {
+            case "*":
+                rand.Seed(time.Now().Unix())
+                probability = rand.Intn(100)
+                if probability < crushProb {
+                    fmt.Println("Multiplying machine", id, "has crashed!")
+                    crushedMultMach[id] = true
+                } else {
+                    task.result = task.number1 * task.number2
+                }
+        }
+        if !interactive {
+            fmt.Println("Multiplying machine", id, ": get", task.number1, task.number2, task.op, "Result:", task.result)
+        }
+        /*select {
+            case <- amch:
+                fmt.Println("Multiplying machine", id, ": get", task.number1, task.number2, task.op, "Result:", task.result)
+            default:
+        }*/
+        multCh <- task
+        freeCh <- id
+    }
+}
+
+// serwisant
+func service(freeAddMach chan int, freeMultMach chan int) {
+    var len int
+    if addMachineNumber > multMachineNumber {
+        len = addMachineNumber
+    } else {
+        len = multMachineNumber
+    }
+    for true {
+        for i := 1; i <= len; i++ {
+            if crushedAddMach[i] == true && i <= addMachineNumber{
+                time.Sleep(time.Second * repTime)
+                crushedAddMach[i] = false
+                freeAddMach <- i           
+                fmt.Println("Adding machine",i,"was repaired!")
+            }
+            if crushedMultMach[i] == true && i <= multMachineNumber{
+                time.Sleep(time.Second * repTime)
+                crushedMultMach[i] = false
+                freeMultMach <- i           
+                fmt.Println("Multiplying machine",i,"was repaired!")
+            }
+        }
+        time.Sleep(time.Second * serviceDelay)
+    }   
 }
