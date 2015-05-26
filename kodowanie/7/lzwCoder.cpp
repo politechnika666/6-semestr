@@ -6,23 +6,23 @@
 
 using namespace std;
 
-void writeFile(short *a);
+void writeFile(int *a);
 void ReadFile(char *name);
-void initialize(map<vector<unsigned char>,short> *dictionary);
-void encode(map<vector<unsigned char>,short> *dictionary, vector<int> *output);
+void initialize(map<vector<unsigned char>,int> *dictionary);
+void encode(map<vector<unsigned char>,int> *dictionary, vector<int> *output);
 
 long length;
 unsigned char *buffer;
 long buffPtr = 0;
 //long outPtr = 0;
 long outLen = 0;
-short idPtr = 257;
-short outputPtr = 0;
+int idPtr = 257;
+int outputPtr = 0;
 int lenA;
 
 int main(int args, char* argv[]) {
 	ReadFile(argv[1]);
-	map<vector<unsigned char>,short> dictionary;
+	map<vector<unsigned char>,int> dictionary;
 	vector <int> output;
 
 	cout << "START" << endl;
@@ -35,13 +35,13 @@ int main(int args, char* argv[]) {
     			cout << (short)*i << ' ';
     		cout << it->second << '\n';
     	}*/
-    short a[outLen];
+    int a[outLen];
     cout << endl;
     for(int i = 0; i<outLen; ++i)
     	a[i] = output[i];
 
-    /*for(int i = 0; i<outLen; ++i)
-    	cout << (short)a[i] << " ";*/
+    for(int i = 0; i<outLen; ++i)
+    	cout << (int)a[i] << " ";
 
 	writeFile(a);
 	cout << endl << "KONIEC" << endl;
@@ -49,7 +49,7 @@ int main(int args, char* argv[]) {
 	return 0;
 }
 
-void initialize(map<vector<unsigned char>,short> *dictionary) {
+void initialize(map<vector<unsigned char>,int> *dictionary) {
 	for(int i = 0; i<256; ++i) {
 		vector<unsigned char> temp(1,i);
 		(*dictionary)[temp] = i+1;
@@ -57,7 +57,7 @@ void initialize(map<vector<unsigned char>,short> *dictionary) {
 	idPtr = 257;
 }
 
-void encode(map<vector<unsigned char>,short> *dictionary, vector<int> *output) {
+void encode(map<vector<unsigned char>,int> *dictionary, vector<int> *output) {
 	vector<unsigned char> word;
 	while(buffPtr <= length) {
 		word.push_back(buffer[buffPtr]);
@@ -72,14 +72,18 @@ void encode(map<vector<unsigned char>,short> *dictionary, vector<int> *output) {
 			word.clear();
 		}
 
+<<<<<<< HEAD
 		if(idPtr == 32766) {
+=======
+		/*if(idPtr == 32767) {
+>>>>>>> c948fe257010a3f004783e84cc96d37e08be9626
 			(*dictionary).clear();
 			initialize(dictionary);
-		}
+		}*/
 	}
 }
 
-void writeFile(short *a) { 
+void writeFile(int *a) { 
     FILE* pFile;
     pFile = fopen("/home/afro/Dokumenty/repo/6-semestr/kodowanie/7/lzwEncoded", "w+");
     fwrite(a, sizeof(*a), outLen, pFile);

@@ -8,25 +8,24 @@ using namespace std;
 
 void writeFile(unsigned char *a);
 void ReadFile(char *name);
-void initialize(map<short,vector<unsigned char> > *dictionary);
-void decode(map<short,vector<unsigned char> > *dictionary, vector<unsigned char> *output);
+void initialize(map<int,vector<unsigned char> > *dictionary);
+void decode(map<int,vector<unsigned char> > *dictionary, vector<unsigned char> *output);
 
 long length;
-short *buffer;
+int *buffer;
 long buffPtr = 0;
 //long outPtr = 0;
 long outLen = 0;
-short idPtr = 257;
-short outputPtr = 0;
+int idPtr = 257;
+int outputPtr = 0;
 int lenA;
+
+
 
 int main(int args, char* argv[]) {
     ReadFile(argv[1]);
-    map<short,vector<unsigned char> > dictionary;
+    map<int,vector<unsigned char> > dictionary;
     vector<unsigned char> output;
-
-    /*for(int i = 0; i<length; ++i)
-        cout << buffer[i] << " ";*/
 
     cout << "START" << endl;
     initialize(&dictionary);
@@ -51,35 +50,31 @@ int main(int args, char* argv[]) {
     return 0;
 }
 
-void initialize(map<short,vector<unsigned char> > *dictionary) {
-    for(short i = 0; i<256; ++i) {
+void initialize(map<int,vector<unsigned char> > *dictionary) {
+    for(int i = 0; i<256; ++i) {
         (*dictionary)[i+1] = vector <unsigned char> (1, i);
     }
     idPtr = 257;
 }
 
-void decode(map<short,vector<unsigned char> > *dictionary, vector<unsigned char> *output) {
-    vector<unsigned char> w;   
-    vector<unsigned char> entry;
-    map<short,vector<unsigned char> >::iterator it = (*dictionary).find(buffer[buffPtr]);
-    w = it->second;
-    (*output).push_back(w[0]);
-    buffPtr++;
-    outLen++;
-    
-    while(buffPtr != length) {
-        if((*dictionary).count(buffer[buffPtr])) {
-            entry = (*dictionary)[buffer[buffPtr]];
-        } else if(buffer[buffPtr] == idPtr) {
-            for(unsigned int i = 0; i<w.size(); ++i)
-                entry.push_back(w[i]);
-        } else
-            throw "COS NIE SMIGA";
+void decode(map<int,vector<unsigned char> > *dictionary, vector<unsigned char> *output) {
+    int OLD, NEW;
+    vector <unsigned char> temp,entry;
+    unsigned char C;
+    OLD = buffer[buffPtr];
+    temp = (*dictionary)[OLD];
+    (*output).push_back(temp[0]);
 
-        for(unsigned int i = 0; i<entry.size(); ++i) {
-            outLen++;
-            (*output).push_back(entry[i]);
+    while(buffPtr <= length) {
+        NEW = buffer[buffPtr++];
+
+        if(!(*dictionary).count(NEW)) {
+            entry = (*dictionary)[OLD];
+            entry.push_back(C);
+        } else {
+            entry = (*dictionary)[NEW];
         }
+<<<<<<< HEAD
         w.push_back(entry[0]);
         (*dictionary)[idPtr++] = w;
         w = entry;
@@ -87,14 +82,23 @@ void decode(map<short,vector<unsigned char> > *dictionary, vector<unsigned char>
         if(idPtr >= 32766) {
             (*dictionary).clear();
             initialize(dictionary);
+=======
+
+        for(unsigned int i = 0; i < entry.size(); ++i) {
+            (*output).push_back(entry[i]);
+>>>>>>> c948fe257010a3f004783e84cc96d37e08be9626
         }
+        C = entry[0];
+        OLD.push_back(C);
+        (*dictionary)[++idPtr] = OLD;
+        OLD = NEW;
     }
 }
 
 void writeFile(unsigned char *a) { 
     FILE* pFile;
     pFile = fopen("/home/afro/Dokumenty/repo/6-semestr/kodowanie/7/lzwDecoded", "w+");
-    fwrite(a, outLen, 1, pFile);
+    fwrite(a, outLen, sizeof(*a), pFile);
 }
 
 // Reading binary files function
@@ -112,7 +116,7 @@ void ReadFile(char *name) {
     fileLen=ftell(file);
     fseek(file, 0, SEEK_SET);
     //Allocate memory
-    buffer=(short *)malloc(fileLen+1);
+    buffer=(int *)malloc(fileLen+1);
     if (!buffer) {
         fprintf(stderr, "Memory error!");
         fclose(file);

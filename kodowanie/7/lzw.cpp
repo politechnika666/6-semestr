@@ -176,7 +176,11 @@ int main(int argc, char* argv[]) {
 					k = string (n.size()-1,'0');
 					encoded = k + n + x.substr(1);
 				}
+<<<<<<< HEAD
 				if(string(argv[2]) == "fibbonacci") {
+=======
+				if(string(argv[2]) == "fibonacci") {
+>>>>>>> c948fe257010a3f004783e84cc96d37e08be9626
 					x1 = dictionary[current];
 					int it = fibnum-1;
 					encoded = "1";
@@ -341,7 +345,11 @@ int main(int argc, char* argv[]) {
 					}
 				}	
 			}
+<<<<<<< HEAD
 			if(string(argv[2]) == "fibbonacci") {
+=======
+			if(string(argv[2]) == "fibonacci") {
+>>>>>>> c948fe257010a3f004783e84cc96d37e08be9626
 				decode = 0; 
 				int it = 0;
 				while(!(data.at(i) == '1' && data.at(i+1) == '1')) {
