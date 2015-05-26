@@ -1,0 +1,24 @@
+V "GNAT Lib v4.9"
+P ZX
+
+RN
+RV NO_FIXED_POINT
+RV NO_FLOATING_POINT
+
+U config%s		config.ads		d99cd724 NE OO PK
+
+D config.ads		20150421072256 d99cd724
+D system.ads		20120723080122 90249111
+X 1 config.ads
+1K9*Config 22l5 22e11
+6i5*Producers_Number{integer}
+7i5*Consumers_Number{integer}
+10o5*Boss_Min_Delay{duration}
+11o5*Producer_Min_Delay{duration}
+12o5*Consumer_Min_Delay{duration}
+15f5*Boss_Mod_Delay{float}
+16f5*Producer_Mod_Delay{float}
+17f5*Consumer_Mod_Delay{float}
+20i5*Storage_max{integer}
+21i5*List_max{integer}
+
