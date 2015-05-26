@@ -72,7 +72,7 @@ void encode(map<vector<unsigned char>,short> *dictionary, vector<int> *output) {
 			word.clear();
 		}
 
-		if(idPtr == 32767) {
+		if(idPtr == 32766) {
 			(*dictionary).clear();
 			initialize(dictionary);
 		}

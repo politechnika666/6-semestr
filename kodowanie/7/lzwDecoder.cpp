@@ -84,7 +84,7 @@ void decode(map<short,vector<unsigned char> > *dictionary, vector<unsigned char>
         (*dictionary)[idPtr++] = w;
         w = entry;
         buffPtr++;
-        if(idPtr >= 32767) {
+        if(idPtr >= 32766) {
             (*dictionary).clear();
             initialize(dictionary);
         }
