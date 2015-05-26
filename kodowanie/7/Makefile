@@ -13,7 +13,7 @@ lzwDecoder: lzwDecoder.cpp
 	g++ -Wall -o lzwDecoder lzwDecoder.cpp
 
 runAll: lzwCoder lzwDecoder fibboCoder fibboDecoder
-	./lzwCoder tadeusz
+	./lzwCoder test3
 	./fibboCoder lzwEncoded
 	./fibboDecoder fibboEncoded
 	./lzwDecoder fibboDecoded
